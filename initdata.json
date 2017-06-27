@@ -1,62 +1,76 @@
 {
-  "users": [
-    {
+  "users": [{
       "last": "2017/06/22",
+      "login": "oliye.braud",
       "full_name": "Olivier Braud"
     },
     {
       "last": "2017/06/15",
+      "login": "seb.pac",
       "full_name": "Sebastien Pacreau"
     },
     {
       "last": "2017/06/08",
+      "login": "salomon",
       "full_name": "Salomon Rossell"
     },
     {
       "last": "2017/06/08",
+      "login": "alois",
       "full_name": "Alois Dougere"
     }, {
       "last": "2017/02/24",
+      "login": "malik",
       "full_name": "Malik Bouras"
     },
     {
       "last": "2017/01/01",
+      "login": "alecorps",
       "full_name": "Arnaud Le Corps"
     },
     {
       "last": "2016/01/01",
+      "login": "npoirier",
       "full_name": "Nicolas Poirier"
     },
     {
       "last": "2017/05/05",
+      "login": "dmaurange",
       "full_name": "David Maurange"
     },
     {
       "last": "2017/01/01",
+      "login": "christophe.bordeux",
       "full_name": "Christophe Bordeux"
     },
     {
       "last": "2017/01/01",
+      "login": "bertrandbariou",
       "full_name": "Bertrand Bariou"
     },
     {
       "last": "2017/06/08",
+      "login": "sebastien.batezat",
       "full_name": "Sebastien Batezat"
     },
     {
       "last": "2017/01/01",
+      "login": "michenux",
       "full_name": "Laurent Michenaud"
     },
     {
       "last": "2017/01/01",
+      "login": "dennis.bordet",
       "full_name": "Dennis Bordet"
     },
     {
       "last": "2017/01/01",
+      "login": "jcurteli",
       "full_name": "Jeremie Curtelin"
     },
     {
       "last": "2017/01/01",
+      "login": "jlivera",
       "full_name": "Jean Livera"
     }
   ]

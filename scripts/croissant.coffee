@@ -1,24 +1,40 @@
-# Description:
-#   Example scripts for you to examine and try out.
+## Description
+#   <description of the scripts functionality>
+#
+# Dependencies:
+#   "croissant": "1.0"
+#
+# Configuration:
+#   initdata.json is the data to import in firebase
+#
+# Commands:
+#   hubot combien croissant nantes -> affiche le nombre personne
+#   qui croissant nantes    -> propose 4 personnes pour la prochaine fois
+#   choose croissant nantes -> définit celui qui apporte les croissants la prochaine fois
 #
 # Notes:
-#   They are commented out by default, because most of them are pretty silly and
-#   wouldn't be useful and amusing enough for day to day huboting.
-#   Uncomment the ones you want to try and experiment with.
+#   use a firebase to save and retrieve data
 #
-#   These are from the scripting documentation: https://github.com/github/hubot/blob/master/docs/scripting.md
+# Author:
+#   sopracreau
+
+zero_pad = (x) ->
+  if x < 10 then '0'+x else ''+x
+
+date_fr_format = (fulldate) ->
+  fulldate.split("\/").reverse().join("\/")
 
 module.exports = (robot) ->
-    robot.hear /combien(.*)croissant(.*)nantes/i, (msg) ->
+    robot.respond /combien(.*)croissant(.*)nantes/i, (msg) ->
       msg.http("https://croissant-ea614.firebaseio.com/users.json")
       .get() (err, res, body) ->
         try
           json = JSON.parse(body)
-          msg.send " #{json.length} personnes participent"
+          msg.send " #{json.length} personnes participent à la feature team Croissant"
         catch error
           msg.send "KO il faut appeler la maintenance"
 
-    robot.hear /qui(.*)croissant(.*)nantes/i, (msg) ->
+    robot.respond /qui(.*)croissant(.*)nantes/i, (msg) ->
       msg.http("https://croissant-ea614.firebaseio.com/users.json?orderBy=\"last\"&limitToFirst=4")
       .get() (err, res, body) ->
         try
@@ -27,15 +43,49 @@ module.exports = (robot) ->
           selected = obj for obj in Object.values(json) when obj.last is "2016/01/01"
 
           if selected
-          then msg.send " #{selected.full_name} s'est proposé parmi ses pairs."
+          then msg.send " @#{selected.login} (#{selected.full_name}) s'est proposé parmi ses pairs."
           else
             msg.send " A qui le tour pour apporter les croissants ?"
-            msg.send " Les 4 nominés sont :  #{obj.full_name} " for obj in Object.values(json)
+            msg.send " Les 4 nominés sont : @#{obj.login} (#{obj.full_name})" for obj in Object.values(json)
 
           #msg.send "The winner is #{json[msg.random Object.keys(json)].full_name}"
 
         catch error
           msg.send "KO il faut appeler la maintenance"
+
+    robot.respond /choose croissant nantes (.*)/i, (res) ->
+       person = res.match[1]
+       today = new Date()
+       y = today.getFullYear()
+       m = today.getMonth()
+       d = today.getDate()
+       fulldate = today.getFullYear() + "/" + zero_pad(m) + "/" + zero_pad(d)
+       #res.send "person" + person + "date" + fulldate
+
+       res.http("https://croissant-ea614.firebaseio.com/users.json?orderBy=\"login\"&equalTo=\""+person+"\"")
+       .get() (err, res2, body) ->
+        try
+           json = JSON.parse(body)
+           key = Object.keys(json)[0]
+
+           #res.send "https://croissant-ea614.firebaseio.com/users/"+key+"/.json" + "{\"last\":\""+fulldate+"\"}"
+           res.http("https://croissant-ea614.firebaseio.com/users/"+key+"/.json")
+           .patch("{\"last\":\""+fulldate+"\"}") (err, body) ->
+             res.send "KO" if err
+             res.send "OK mise à jour de " + person + " au " + date_fr_format(fulldate) unless err
+        catch error
+           res.send "get KO il faut appeler la maintenance" +error
+
+    robot.respond /quand croissant nantes (.*)/i, (res) ->
+       person = res.match[1]
+       res.http("https://croissant-ea614.firebaseio.com/users.json?orderBy=\"login\"&equalTo=\""+person+"\"")
+       .get() (err, res2, body) ->
+        try
+           json = JSON.parse(body)
+           key = Object.keys(json)[0]
+           res.send person + " a apporté les croissants le " + date_fr_format(json[key].last)
+        catch error
+           res.send "get KO il faut appeler la maintenance" + error
 
   # robot.hear /badger/i, (res) ->
   #   res.send "Badgers? BADGERS? WE DON'T NEED NO STINKIN BADGERS"
