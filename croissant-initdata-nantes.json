@@ -1,5 +1,6 @@
 {
-  "users": [{
+  "users": [
+    {
       "last": "2017/06/22",
       "login": "oliye.braud",
       "full_name": "Olivier Braud"

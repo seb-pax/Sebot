@@ -1,16 +1,18 @@
-## Description
+# Description
 #   <description of the scripts functionality>
 #
 # Dependencies:
 #   "croissant": "1.0"
 #
 # Configuration:
-#   initdata.json is the data to import in firebase
+#   initdata.json is the initial data to import in firebase
 #
 # Commands:
-#   hubot combien croissant nantes -> affiche le nombre personne
-#   qui croissant nantes    -> propose 4 personnes pour la prochaine fois
-#   choose croissant nantes -> définit celui qui apporte les croissants la prochaine fois
+#   lopako croissant (nantes|toulouse) combien -> affiche le nombre de personnes dans la feature team Croissant
+#   lopako croissant (nantes|toulouse) qui     -> propose 4 personnes pour la prochaine fois
+#   lopako croissant (nantes|toulouse) elu     -> définit celui qui apporte les croissants la prochaine fois
+#   lopako croissant (nantes|toulouse) update  -> modifie la date de celui qui a apporté les croissants
+#   lopako croissant (nantes|toulouse) quand  -> affiche la dernière date où une personne a apporté les croissants
 #
 # Notes:
 #   use a firebase to save and retrieve data
@@ -18,74 +20,165 @@
 # Author:
 #   sopracreau
 
+ROOT_FIREBASE_NANTES="https://croissant-ea614.firebaseio.com/"
+ROOT_FIREBASE_TOULOUSE="https://croissant-toulouse.firebaseio.com/"
+COUNT_OF_NOMINATED=4
+VALUE_OF_ELECTED="2016/01/01"
+
 zero_pad = (x) ->
   if x < 10 then '0'+x else ''+x
 
 date_fr_format = (fulldate) ->
   fulldate.split("\/").reverse().join("\/")
 
+update_date = (firebase, res, person , fulldate) ->
+  res.http(firebase + "/users.json?orderBy=\"login\"&equalTo=\""+person+"\"")
+  .get() (err, res2, body) ->
+
+      json = JSON.parse(body)
+      key = Object.keys(json)[0]
+
+      if key
+      then res.http(firebase + "users/"+key+"/.json").patch("{\"last\":\""+fulldate+"\"}") (err, body) ->
+                    res.send "KO " if err
+                    if fulldate is VALUE_OF_ELECTED
+                    then res.send "OK " + person + " est le nouvel élu " unless err
+                    else res.send "OK mise à jour de " + person + " au " + date_fr_format(fulldate) unless err
+      else res.send person + " n'a pas été trouvé en base : \nhubot croissant nantes liste -> pour voir les infos des participants"
+
+#TIMEZONE = "Europe/Paris"
+#QUITTING_TIME = '* * 16 * * 2-6' # M-F 5pm
+#ROOM = "Croissants"
+
+#cronJob = require('cron').CronJob
+combien_croissant = (firebase, msg) ->
+  msg.http(firebase + "users.json")
+  .get() (err, res, body) ->
+    try
+      json = JSON.parse(body)
+      msg.send "#{json.length} personnes participent à la feature team Croissant"
+    catch error
+      msg.send "KO il faut appeler la maintenance" + error
+
+qui_croissant = (firebase, msg) ->
+  msg.http(firebase + "users.json?orderBy=\"last\"&limitToFirst=" + COUNT_OF_NOMINATED)
+  .get() (err, res, body) ->
+    try
+      json = JSON.parse(body)
+      # le filtre enlève les valeurs nulles
+      values = Object.keys(json).map((key) => return json[key]).filter((val) => return Boolean(val))
+      selected = obj for obj in values when obj.last is VALUE_OF_ELECTED
+
+      if selected
+      then msg.send " @#{selected.login} (#{selected.full_name}) s'est proposé et apportera les croissants."
+      else
+        msg.send "A qui le tour pour apporter les croissants ?"
+        msg.send "Les #{COUNT_OF_NOMINATED} nominés sont : "
+        msg.send "\t\t @#{obj.login} (#{obj.full_name})" for obj in values
+    catch error
+      msg.send "KO il faut appeler la maintenance" + error
+
+elu_croissant = (firebase, res) ->
+  person = res.match[1]
+  try
+    update_date(firebase, res, person.trim(), VALUE_OF_ELECTED)
+  catch error
+    res.send "elu_croissant KO il faut appeler la maintenance" + error
+
+update_croissant = (firebase, res) ->
+  person = res.match[1]
+  today = new Date()
+  fulldate = today.getFullYear() + "/" + zero_pad( today.getMonth()+1 ) + "/" + zero_pad(today.getDate())
+  try
+    update_date(firebase, res, person.trim(), fulldate)
+  catch error
+    res.send "update_croissant KO il faut appeler la maintenance" +error
+    res.send person + " existe t il ?"
+
+quand_croissant = (firebase, res) ->
+  person = res.match[1]
+  res.http(firebase + "users.json?orderBy=\"login\"&equalTo=\""+person.trim()+"\"")
+  .get() (err, res2, body) ->
+   try
+     json = JSON.parse(body)
+     key = Object.keys(json)[0]
+     res.send person + " apportera prochainement les croissants " if json[key].last is VALUE_OF_ELECTED
+     res.send person + " a apporté les croissants le " + date_fr_format(json[key].last) unless json[key].last is VALUE_OF_ELECTED
+   catch error
+     res.send "quand_croissant il faut appeler la maintenance " + error
+     res.send "Le compte " + person + " existe t-il ?"
+
+list_croissant = (firebase, msg) ->
+  msg.http(firebase + "users.json")
+  .get() (err, res, body) ->
+    try
+      json = JSON.parse(body)
+      values = Object.keys(json).map((key) => return json[key]).filter((val) => return Boolean(val))
+      msg.send "Voici la liste des personnes participantes :"
+      msg.send "\t\t @#{obj.login} (#{obj.full_name})" for obj in values
+    catch error
+      msg.send "list_croissant : KO : il faut appeler la maintenance" + error
+
+########################
+# ROBOT ZONE 
+#######################
 module.exports = (robot) ->
-    robot.respond /combien(.*)croissant(.*)nantes/i, (msg) ->
-      msg.http("https://croissant-ea614.firebaseio.com/users.json")
-      .get() (err, res, body) ->
-        try
-          json = JSON.parse(body)
-          msg.send " #{json.length} personnes participent à la feature team Croissant"
-        catch error
-          msg.send "KO il faut appeler la maintenance"
+#    gohome = new cronJob QUITTING_TIME,
+#            ->
+#              robot.messageRoom ROOM, "C'est le moment de choisir qui apportera les croissants !  Vite !"
+#            null
+#            true
+#https://stackoverflow.com/questions/11196659/get-hubot-to-talk-at-a-certain-time
+    robot.respond /Qui sont les plus forts ?/i, (msg) ->
+      msg.send "Ce sont les Nantais, bien sûr!!! "
 
-    robot.respond /qui(.*)croissant(.*)nantes/i, (msg) ->
-      msg.http("https://croissant-ea614.firebaseio.com/users.json?orderBy=\"last\"&limitToFirst=4")
-      .get() (err, res, body) ->
-        try
-          json = JSON.parse(body)
-          #msg.send  " body #{body}"
-          selected = obj for obj in Object.values(json) when obj.last is "2016/01/01"
+    robot.respond /croissant nantes liste/i, (msg) ->
+      msg.send "A Nantes, "
+      list_croissant(ROOT_FIREBASE_NANTES, msg)
 
-          if selected
-          then msg.send " @#{selected.login} (#{selected.full_name}) s'est proposé parmi ses pairs."
-          else
-            msg.send " A qui le tour pour apporter les croissants ?"
-            msg.send " Les 4 nominés sont : @#{obj.login} (#{obj.full_name})" for obj in Object.values(json)
+    robot.respond /croissant toulouse liste/i, (msg) ->
+      msg.send "A Toulouse, "
+      list_croissant(ROOT_FIREBASE_TOULOUSE, msg)
 
-          #msg.send "The winner is #{json[msg.random Object.keys(json)].full_name}"
+    robot.respond /croissant nantes combien/i, (msg) ->
+      msg.send "A Nantes, "
+      combien_croissant(ROOT_FIREBASE_NANTES, msg)
 
-        catch error
-          msg.send "KO il faut appeler la maintenance"
+    robot.respond /croissant toulouse combien/i, (msg) ->
+      msg.send "A Toulouse, "
+      combien_croissant(ROOT_FIREBASE_TOULOUSE, msg)
 
-    robot.respond /choose croissant nantes (.*)/i, (res) ->
-       person = res.match[1]
-       today = new Date()
-       y = today.getFullYear()
-       m = today.getMonth()
-       d = today.getDate()
-       fulldate = today.getFullYear() + "/" + zero_pad(m) + "/" + zero_pad(d)
-       #res.send "person" + person + "date" + fulldate
+    robot.respond /croissant nantes qui/i, (msg) ->
+      msg.send "A Nantes, "
+      qui_croissant(ROOT_FIREBASE_NANTES, msg)
 
-       res.http("https://croissant-ea614.firebaseio.com/users.json?orderBy=\"login\"&equalTo=\""+person+"\"")
-       .get() (err, res2, body) ->
-        try
-           json = JSON.parse(body)
-           key = Object.keys(json)[0]
+    robot.respond /croissant toulouse qui/i, (msg) ->
+      msg.send "A Toulouse, "
+      qui_croissant(ROOT_FIREBASE_TOULOUSE, msg)
 
-           #res.send "https://croissant-ea614.firebaseio.com/users/"+key+"/.json" + "{\"last\":\""+fulldate+"\"}"
-           res.http("https://croissant-ea614.firebaseio.com/users/"+key+"/.json")
-           .patch("{\"last\":\""+fulldate+"\"}") (err, body) ->
-             res.send "KO" if err
-             res.send "OK mise à jour de " + person + " au " + date_fr_format(fulldate) unless err
-        catch error
-           res.send "get KO il faut appeler la maintenance" +error
+    robot.respond /croissant nantes elu(.*)/i, (res) ->
+      res.send "A Nantes, "
+      elu_croissant(ROOT_FIREBASE_NANTES, res)
 
-    robot.respond /quand croissant nantes (.*)/i, (res) ->
-       person = res.match[1]
-       res.http("https://croissant-ea614.firebaseio.com/users.json?orderBy=\"login\"&equalTo=\""+person+"\"")
-       .get() (err, res2, body) ->
-        try
-           json = JSON.parse(body)
-           key = Object.keys(json)[0]
-           res.send person + " a apporté les croissants le " + date_fr_format(json[key].last)
-        catch error
-           res.send "get KO il faut appeler la maintenance" + error
+    robot.respond /croissant toulouse elu(.*)/i, (res) ->
+      res.send "A Toulouse, "
+      elu_croissant(ROOT_FIREBASE_TOULOUSE, res)
+
+    robot.respond /croissant nantes update(.*)/i, (res) ->
+      res.send "A Nantes, "
+      update_croissant(ROOT_FIREBASE_NANTES, res)
+
+    robot.respond /croissant toulouse update(.*)/i, (res) ->
+      res.send "A Toulouse, "
+      update_croissant(ROOT_FIREBASE_TOULOUSE, res)
+
+    robot.respond /croissant nantes quand(.*)/i, (res) ->
+      res.send "A Nantes, "
+      quand_croissant(ROOT_FIREBASE_NANTES, res)
+
+    robot.respond /croissant toulouse quand(.*)/i, (res) ->
+      res.send "A Toulouse, "
+      quand_croissant(ROOT_FIREBASE_TOULOUSE, res)
 
   # robot.hear /badger/i, (res) ->
   #   res.send "Badgers? BADGERS? WE DON'T NEED NO STINKIN BADGERS"

@@ -1,0 +1,68 @@
+{
+  "users": [{
+      "last": "2017/01/01",
+      "login": "julien.faixo",
+      "full_name": "Julien Faixo"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "remy.san",
+      "full_name": "Remy Sanfeliu"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "noe",
+      "full_name": "Noe"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "mlumeau",
+      "full_name": "Chat Lumeau"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "sarah.salles",
+      "full_name": "Sarah Salles"
+    },
+    {
+      "last": "2016/01/01",
+      "login": "nicolas.fouin",
+      "full_name": "Nicolas Fouin"
+    },
+    {
+      "last": "2017/05/05",
+      "login": "alex",
+      "full_name": "Alexandre Prieto"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "belamrani",
+      "full_name": "Benoit Elamrani"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "bastien.m",
+      "full_name": "Bastien Micheneau"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "aorsini",
+      "full_name": "Antoine Orsine"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "alexandra.f",
+      "full_name": "Alexandra Furic"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "emmy",
+      "full_name": "Emmy Paillassa"
+    },
+    {
+      "last": "2017/01/01",
+      "login": "frederic",
+      "full_name": "Frederic Marty"
+    }
+  ]
+}
