@@ -102,7 +102,7 @@ quand_croissant = (firebase, res) ->
    try
      json = JSON.parse(body)
      key = Object.keys(json)[0]
-     res.send person + " apportera prochainement les croissants " if json[key].last is VALUE_OF_ELECTED
+     res.send "@" + person + " apportera prochainement les croissants " if json[key].last is VALUE_OF_ELECTED
      res.send person + " a apporté les croissants le " + date_fr_format(json[key].last) unless json[key].last is VALUE_OF_ELECTED
    catch error
      res.send "quand_croissant il faut appeler la maintenance " + error
@@ -120,7 +120,7 @@ list_croissant = (firebase, msg) ->
       msg.send "list_croissant : KO : il faut appeler la maintenance" + error
 
 ########################
-# ROBOT ZONE 
+# ROBOT ZONE
 #######################
 module.exports = (robot) ->
 #    gohome = new cronJob QUITTING_TIME,
