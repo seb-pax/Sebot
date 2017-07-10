@@ -72,8 +72,7 @@ qui_croissant = (firebase, msg) ->
       if selected
       then msg.send " @#{selected.login} (#{selected.full_name}) s'est proposé et apportera les croissants."
       else
-        msg.send "A qui le tour pour apporter les croissants ?"
-        msg.send "Les #{COUNT_OF_NOMINATED} nominés sont : "
+        msg.send "A qui le tour pour apporter les croissants ?\r\n Les #{COUNT_OF_NOMINATED} nominés sont : "
         msg.send "\t\t @#{obj.login} (#{obj.full_name})" for obj in values
     catch error
       msg.send "KO il faut appeler la maintenance" + error
