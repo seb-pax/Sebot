@@ -22,6 +22,7 @@
 
 ROOT_FIREBASE_NANTES="https://croissant-ea614.firebaseio.com/"
 ROOT_FIREBASE_TOULOUSE="https://croissant-toulouse.firebaseio.com/"
+
 COUNT_OF_NOMINATED=4
 VALUE_OF_ELECTED="2016/01/01"
 
@@ -38,13 +39,12 @@ update_date = (firebase, res, person , fulldate) ->
       json = JSON.parse(body)
       key = Object.keys(json)[0]
 
-      if key
-      then res.http(firebase + "users/"+key+"/.json").patch("{\"last\":\""+fulldate+"\"}") (err, body) ->
-                    res.send "KO " if err
-                    if fulldate is VALUE_OF_ELECTED
-                    then res.send "OK " + person + " est le nouvel élu " unless err
-                    else res.send "OK mise à jour de " + person + " au " + date_fr_format(fulldate) unless err
-      else res.send person + " n'a pas été trouvé en base : \nhubot croissant nantes liste -> pour voir les infos des participants"
+      res.http(firebase + "users/"+key+"/.json")
+      .patch("{\"last\":\""+fulldate+"\"}") (err, body) ->
+          res.send "KO " if err
+          if fulldate is VALUE_OF_ELECTED
+          then res.send "OK " + person + " est le nouvel élu " unless err
+          else res.send "OK mise à jour de " + person + " au " + date_fr_format(fulldate) unless err
 
 #TIMEZONE = "Europe/Paris"
 #QUITTING_TIME = '* * 16 * * 2-6' # M-F 5pm
@@ -65,14 +65,14 @@ qui_croissant = (firebase, msg) ->
   .get() (err, res, body) ->
     try
       json = JSON.parse(body)
-      # le filtre enlève les valeurs nulles
-      values = Object.keys(json).map((key) => return json[key]).filter((val) => return Boolean(val))
-      selected = obj for obj in values when obj.last is VALUE_OF_ELECTED
+      values = Object.keys(json).map((key) => return json[key])
+      selected =  obj for obj in values when obj and obj.last is VALUE_OF_ELECTED
 
       if selected
       then msg.send " @#{selected.login} (#{selected.full_name}) s'est proposé et apportera les croissants."
       else
-        msg.send "A qui le tour pour apporter les croissants ?\r\n Les #{COUNT_OF_NOMINATED} nominés sont : "
+        msg.send "A qui le tour pour apporter les croissants ?"
+        msg.send "Les #{COUNT_OF_NOMINATED} nominés sont : "
         msg.send "\t\t @#{obj.login} (#{obj.full_name})" for obj in values
     catch error
       msg.send "KO il faut appeler la maintenance" + error
@@ -82,7 +82,7 @@ elu_croissant = (firebase, res) ->
   try
     update_date(firebase, res, person.trim(), VALUE_OF_ELECTED)
   catch error
-    res.send "elu_croissant KO il faut appeler la maintenance" + error
+    res.send "update_date KO il faut appeler la maintenance" + error
 
 update_croissant = (firebase, res) ->
   person = res.match[1]
@@ -91,7 +91,7 @@ update_croissant = (firebase, res) ->
   try
     update_date(firebase, res, person.trim(), fulldate)
   catch error
-    res.send "update_croissant KO il faut appeler la maintenance" +error
+    res.send "update_date KO il faut appeler la maintenance" +error
     res.send person + " existe t il ?"
 
 quand_croissant = (firebase, res) ->
@@ -101,10 +101,10 @@ quand_croissant = (firebase, res) ->
    try
      json = JSON.parse(body)
      key = Object.keys(json)[0]
-     res.send "@" + person + " apportera prochainement les croissants " if json[key].last is VALUE_OF_ELECTED
+     res.send person + " apportera prochainement les croissants " if json[key].last is VALUE_OF_ELECTED
      res.send person + " a apporté les croissants le " + date_fr_format(json[key].last) unless json[key].last is VALUE_OF_ELECTED
    catch error
-     res.send "quand_croissant il faut appeler la maintenance " + error
+     res.send "KO il faut appeler la maintenance " + error
      res.send "Le compte " + person + " existe t-il ?"
 
 list_croissant = (firebase, msg) ->
@@ -112,15 +112,13 @@ list_croissant = (firebase, msg) ->
   .get() (err, res, body) ->
     try
       json = JSON.parse(body)
-      values = Object.keys(json).map((key) => return json[key]).filter((val) => return Boolean(val))
+      values = Object.keys(json).map((key) => return json[key])
       msg.send "Voici la liste des personnes participantes :"
       msg.send "\t\t @#{obj.login} (#{obj.full_name})" for obj in values
     catch error
-      msg.send "list_croissant : KO : il faut appeler la maintenance" + error
+      msg.send "KO il faut appeler la maintenance" + error
 
-########################
-# ROBOT ZONE
-#######################
+
 module.exports = (robot) ->
 #    gohome = new cronJob QUITTING_TIME,
 #            ->
