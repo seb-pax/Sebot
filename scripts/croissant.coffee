@@ -19,11 +19,13 @@
 #
 # Author:
 #   sopracreau
+proxy = require 'proxy-agent'
 
 ROOT_FIREBASE_NANTES="https://croissant-ea614.firebaseio.com/"
 ROOT_FIREBASE_TOULOUSE="https://croissant-toulouse.firebaseio.com/"
+PROXY='http://marc.proxy.corp.sopra:8080'
 
-COUNT_OF_NOMINATED=4
+COUNT_OF_NOMINATED=6
 VALUE_OF_ELECTED="2016/01/01"
 
 zero_pad = (x) ->
@@ -33,13 +35,14 @@ date_fr_format = (fulldate) ->
   fulldate.split("\/").reverse().join("\/")
 
 update_date = (firebase, res, person , fulldate) ->
-  res.http(firebase + "/users.json?orderBy=\"login\"&equalTo=\""+person+"\"")
+  res.http(firebase + "/users.json?orderBy=\"login\"&equalTo=\""+person+"\"",
+      {'agent':proxy(PROXY, false)} )
   .get() (err, res2, body) ->
 
       json = JSON.parse(body)
       key = Object.keys(json)[0]
 
-      res.http(firebase + "users/"+key+"/.json")
+      res.http(firebase + "users/"+key+"/.json", {'agent':proxy(PROXY, false)} )
       .patch("{\"last\":\""+fulldate+"\"}") (err, body) ->
           res.send "KO " if err
           if fulldate is VALUE_OF_ELECTED
@@ -52,7 +55,7 @@ update_date = (firebase, res, person , fulldate) ->
 
 #cronJob = require('cron').CronJob
 combien_croissant = (firebase, msg) ->
-  msg.http(firebase + "users.json")
+  msg.http(firebase + "users.json", {'agent':proxy(PROXY, false)} )
   .get() (err, res, body) ->
     try
       json = JSON.parse(body)
@@ -61,7 +64,8 @@ combien_croissant = (firebase, msg) ->
       msg.send "KO il faut appeler la maintenance" + error
 
 qui_croissant = (firebase, msg) ->
-  msg.http(firebase + "users.json?orderBy=\"last\"&limitToFirst=" + COUNT_OF_NOMINATED)
+  msg.http(firebase + "users.json?orderBy=\"last\"&limitToFirst=" + COUNT_OF_NOMINATED,
+      {'agent':proxy(PROXY, false)} )
   .get() (err, res, body) ->
     try
       json = JSON.parse(body)
@@ -96,7 +100,9 @@ update_croissant = (firebase, res) ->
 
 quand_croissant = (firebase, res) ->
   person = res.match[1]
-  res.http(firebase + "users.json?orderBy=\"login\"&equalTo=\""+person.trim()+"\"")
+  res.http(firebase + "users.json?orderBy=\"login\"&equalTo=\""+person.trim()+"\"",
+      {'agent':proxy(PROXY, false)}
+    )
   .get() (err, res2, body) ->
    try
      json = JSON.parse(body)
@@ -108,7 +114,7 @@ quand_croissant = (firebase, res) ->
      res.send "Le compte " + person + " existe t-il ?"
 
 list_croissant = (firebase, msg) ->
-  msg.http(firebase + "users.json")
+  msg.http(firebase + "users.json", {'agent':proxy(PROXY, false)} )
   .get() (err, res, body) ->
     try
       json = JSON.parse(body)
